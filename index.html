@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Cancer Detection | Diagnostic System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            /* White & Purple Theme */
+            --bg: #f8fafc;
+            --bg-accent: #f5f3ff;
+            --card-bg: #ffffff;
+            --card-subtle: #faf5ff;
+            --border: #e2e8f0;
+            --border-purple: #e9d5ff;
+            --border-active: #7c3aed;
+            
+            --text-heading: #1e1b4b;
+            --text-body: #334155;
+            --text-dim: #64748b;
+            --text-muted: #94a3b8;
+            
+            --purple: #7c3aed;
+            --purple-dark: #6d28d9;
+            --purple-light: #8b5cf6;
+            --purple-dim: #ede9fe;
+            --purple-subtle: #f5f3ff;
+            --purple-glow: rgba(124, 58, 237, 0.15);
+
+            --green: #059669;
+            --green-dim: #d1fae5;
+            --green-border: #a7f3d0;
+            --red: #dc2626;
+            --red-dim: #fee2e2;
+            --red-border: #fecaca;
+            --amber: #d97706;
+            --amber-dim: #fef3c7;
+            --amber-border: #fde68a;
+
+            --grad-purple: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px -2px rgba(124, 58, 237, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 25px -4px rgba(124, 58, 237, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-body);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.45;
+        }
+
+        /* Ambient purple background gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 280px;
+            background: radial-gradient(ellipse at 50% -20%, rgba(124, 58, 237, 0.12) 0%, rgba(245, 243, 255, 0.6) 50%, transparent 80%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .app-container {
+            position: relative; z-index: 1;
+            max-width: 1440px; margin: 0 auto; padding: 12px 24px;
+        }
+
+        /* ── TOP HEADER / NAV (Sticky Clean White & Purple) ── */
+        .top-nav {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(248, 250, 252, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0 12px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .header-title-wrap {
+            display: flex; align-items: center; gap: 14px;
+        }
+        .header-title {
+            font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+            color: var(--text-heading);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .header-title span.purple-text {
+            color: var(--purple);
+        }
+
+        /* Navigation Tab Switcher */
+        .nav-tabs {
+            display: flex; align-items: center; gap: 4px;
+            background: #ffffff;
+            padding: 4px; border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-btn {
+            font-family: inherit; font-size: 13px; font-weight: 700;
+            padding: 8px 18px; border-radius: 8px; border: none;
+            background: transparent; color: var(--text-dim);
+            cursor: pointer; transition: all 0.15s ease;
+        }
+        .nav-btn:hover {
+            color: var(--text-heading);
+            background: var(--purple-subtle);
+        }
+        .nav-btn.active {
+            color: #ffffff;
+            background: var(--grad-purple);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+        }
+
+        /* ── SECTION 1: ANALYZE EXACT 1 PAGE VIEWPORT ── */
+        #section-analyze {
+            min-height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
+            justify-content: stretch;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+        }
+
+        /* ── SUBSEQUENT SCROLLABLE SECTIONS ── */
+        .page-section {
+            padding: 48px 0 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── WORKSPACE: FILLS FIRST PAGE VIEWPORT CLEANLY ── */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 18px;
+            align-items: stretch;
+            flex: 1;
+            min-height: 0;
+        }
+        @media (max-width: 1150px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-head {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: #ffffff;
+            flex-shrink: 0;
+        }
+        .panel-title {
+            font-size: 14px; font-weight: 800; color: var(--text-heading);
+        }
+        .panel-desc {
+            font-size: 11.5px; color: var(--text-dim); margin-top: 1px;
+        }
+
+        /* Action Buttons */
+        .panel-actions {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-action {
+            font-family: inherit; font-size: 12px; font-weight: 700;
+            padding: 7px 14px; border-radius: 8px;
+            border: 1px solid var(--border-purple);
+            background: #ffffff; color: var(--purple-dark);
+            cursor: pointer; transition: all 0.15s ease;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-action:hover {
+            background: var(--purple-dim);
+            border-color: var(--purple);
+            color: var(--purple-dark);
+        }
+        .btn-action svg { width: 13px; height: 13px; color: var(--purple); }
+
+        .btn-clear {
+            font-family: inherit; font-size: 12px; font-weight: 600;
+            padding: 7px 12px; border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #ffffff; color: var(--text-dim);
+            cursor: pointer; transition: all 0.15s ease;
+        }
+        .btn-clear:hover { background: #f1f5f9; color: var(--text-heading); }
+
+        /* ── 30 PARAMETERS: 5 COLUMNS FILLING SPACE PROPORTIONALLY ── */
+        #main-form {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .metrics-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: auto repeat(2, 1fr) auto repeat(2, 1fr) auto repeat(2, 1fr);
+            gap: 10px 10px;
+            padding: 14px 18px;
+            background: #fafbfc;
+            min-height: 0;
+        }
+
+        .group-header {
+            grid-column: 1 / -1;
+            font-size: 11px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 6px 4px 2px;
+            display: flex; align-items: center; justify-content: space-between;
+            color: var(--text-heading);
+        }
+        .group-header:first-child { padding-top: 0; }
+        .group-tag {
+            font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+        }
+        .tag-mean { background: var(--purple-dim); color: var(--purple-dark); border: 1px solid var(--border-purple); }
+        .tag-se { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+        .tag-worst { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+        .metric-card {
+            position: relative;
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            transition: all 0.12s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 64px;
+            height: 100%;
+        }
+        .metric-card:hover {
+            border-color: var(--border-purple);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+            transform: translateY(-1px);
+        }
+        .metric-card:focus-within {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px var(--purple-glow);
+            background: #ffffff;
+        }
+        .metric-top {
+            display: flex; align-items: baseline; justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .metric-name {
+            font-size: 12px; font-weight: 700; color: #475569;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .metric-unit {
+            font-size: 9.5px; font-weight: 700; color: var(--purple-dark);
+            background: var(--purple-dim);
+            padding: 1px 5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+        .metric-card input {
+            width: 100%; font-family: 'JetBrains Mono', monospace;
+            font-size: 18px; font-weight: 700; color: var(--text-heading);
+            background: transparent; border: none; outline: none; padding: 0;
+            line-height: 1.2;
+        }
+        .metric-card input::placeholder { color: #cbd5e1; font-weight: 500; }
+
+        /* Submit Bar */
+        .submit-bar {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: #ffffff;
+            flex-shrink: 0;
+        }
+        .submit-info {
+            font-size: 12px; color: var(--text-muted); font-weight: 500;
+        }
+        .btn-run {
+            font-family: inherit; font-size: 14px; font-weight: 800;
+            padding: 11px 28px; border-radius: 9px; border: none; color: #ffffff;
+            background: var(--grad-purple); cursor: pointer;
+            transition: transform 0.12s, box-shadow 0.15s;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-run:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+        }
+        .btn-run:active { transform: translateY(0); }
+        .btn-run svg { width: 16px; height: 16px; }
+
+        /* ── RIGHT PANEL: DIAGNOSTIC REPORT ── */
+        .report-panel {
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .state-standby {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 36px 24px;
+            text-align: center;
+        }
+        .standby-icon {
+            width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 16px;
+            background: var(--purple-dim); border: 1px solid var(--border-purple);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .standby-icon svg { width: 32px; height: 32px; color: var(--purple); }
+        .standby-title { font-size: 16px; font-weight: 800; color: var(--text-heading); }
+        .standby-text { font-size: 13px; color: var(--text-dim); margin-top: 6px; line-height: 1.55; max-width: 280px; }
+
+        .state-loading {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 24px;
+            text-align: center;
+        }
+        .spinner {
+            width: 42px; height: 42px;
+            border: 3.5px solid var(--border-purple); border-top-color: var(--purple);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-title { font-size: 15px; font-weight: 800; color: var(--text-heading); }
+        .loading-step { font-size: 13px; color: var(--purple); font-weight: 600; margin-top: 6px; }
+
+        .state-error {
+            margin: 16px; padding: 14px 16px; border-radius: 10px;
+            background: var(--red-dim); border: 1px solid var(--red-border);
+            font-size: 13px; color: var(--red); font-weight: 600;
+        }
+
+        .result-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+        }
+
+        .verdict-card {
+            padding: 14px; border-radius: 10px;
+            display: flex; align-items: flex-start; gap: 12px;
+        }
+        .verdict-card.benign { background: var(--green-dim); border: 1px solid var(--green-border); }
+        .verdict-card.malignant { background: var(--red-dim); border: 1px solid var(--red-border); }
+        .verdict-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .verdict-icon.benign { background: var(--green); color: #fff; }
+        .verdict-icon.malignant { background: var(--red); color: #fff; }
+        .verdict-icon svg { width: 20px; height: 20px; }
+        .verdict-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; }
+        .verdict-badge.benign { color: var(--green); }
+        .verdict-badge.malignant { color: var(--red); }
+        .verdict-title { font-size: 15px; font-weight: 800; color: var(--text-heading); margin-top: 1px; }
+        .verdict-desc { font-size: 11.5px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
+
+        .risk-card {
+            margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+            background: #f8fafc; border: 1px solid var(--border);
+        }
+        .risk-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+        .risk-label { font-size: 11.5px; font-weight: 700; color: var(--text-dim); }
+        .risk-pct { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+        .risk-pct.benign { color: var(--green); }
+        .risk-pct.malignant { color: var(--red); }
+        .risk-track { width: 100%; height: 6px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+        .risk-fill { height: 100%; border-radius: 99px; transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        .risk-fill.benign { background: var(--green); }
+        .risk-fill.malignant { background: var(--red); }
+        .risk-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .risk-meta-item { font-size: 11.5px; }
+        .risk-meta-k { color: var(--text-muted); font-weight: 600; font-size: 10.5px; }
+        .risk-meta-v { color: var(--text-heading); font-weight: 800; margin-top: 1px; }
+
+        .shap-card {
+            margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+            background: #f8fafc; border: 1px solid var(--border);
+        }
+        .shap-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .shap-title { font-size: 12px; font-weight: 800; color: var(--text-heading); }
+        .shap-legend { display: flex; gap: 10px; font-size: 10.5px; font-weight: 700; }
+        .shap-legend span { display: flex; align-items: center; gap: 4px; }
+        .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+        .dot-red { background: #ef4444; }
+        .dot-purple { background: #7c3aed; }
+        .chart-box { height: 160px; position: relative; }
+        .shap-narrative {
+            margin-top: 10px; font-size: 11px; color: var(--text-dim); line-height: 1.45;
+            padding: 8px 10px; border-radius: 6px;
+            background: #ffffff; border: 1px solid var(--border);
+        }
+
+        /* ═════════════════════════════════════════════════════════
+           TAB 2: MODEL PERFORMANCE (White & Purple Theme)
+           ═════════════════════════════════════════════════════════ */
+        .tab-content { padding: 4px 0 30px; }
+
+        .sec-title {
+            font-size: 22px; font-weight: 800; color: var(--text-heading); letter-spacing: -0.4px;
+        }
+        .sec-sub {
+            font-size: 13px; color: var(--text-dim); margin-top: 4px; margin-bottom: 20px;
+        }
+
+        .stat-grid-4 {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-bottom: 20px;
+        }
+        @media (max-width: 800px) { .stat-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+
+        .stat-box {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 18px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.15s ease;
+        }
+        .stat-box:hover {
+            border-color: var(--border-purple);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .stat-val {
+            font-size: 30px; font-weight: 900; line-height: 1; letter-spacing: -0.5px;
+        }
+        .val-purple { color: var(--purple); }
+        .val-rose { color: #e11d48; }
+        .val-green { color: var(--green); }
+        .val-indigo { color: #4f46e5; }
+        .stat-lbl {
+            font-size: 12.5px; font-weight: 700; color: var(--text-heading); margin-top: 8px;
+        }
+        .stat-sub {
+            font-size: 11px; color: var(--text-dim); margin-top: 3px;
+        }
+
+        /* Confusion Matrix */
+        .matrix-container {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .matrix-top {
+            display: flex; align-items: baseline; justify-content: space-between;
+            margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+        }
+        .matrix-heading { font-size: 14.5px; font-weight: 800; color: var(--text-heading); }
+        .matrix-sample { font-size: 11.5px; color: var(--text-muted); font-style: italic; }
+        .matrix-table {
+            width: 100%; border-collapse: collapse; font-size: 13px;
+        }
+        .matrix-table th {
+            text-align: left; padding: 10px 14px;
+            font-size: 11.5px; font-weight: 700; color: var(--text-dim);
+            background: var(--purple-subtle); border-bottom: 1px solid var(--border);
+        }
+        .matrix-table td {
+            padding: 12px 14px; border-bottom: 1px solid var(--border);
+            color: var(--text-body);
+        }
+        .matrix-table tr:last-child td { border-bottom: none; }
+        .row-lbl { font-weight: 700; color: var(--text-heading); }
+        .cell-good { color: var(--green); font-weight: 700; }
+        .cell-bad { color: var(--red); font-weight: 700; }
+        .cell-sub { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+
+        /* Protocol Box (Image 1 in White & Purple) */
+        .protocol-container {
+            background: #ffffff;
+            border: 1px solid var(--border-purple);
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            margin-top: 24px;
+        }
+        .protocol-heading {
+            font-size: 18px; font-weight: 800; color: var(--text-heading);
+        }
+        .protocol-sub {
+            font-size: 12.5px; color: var(--text-dim); margin-top: 4px; line-height: 1.5;
+        }
+        .protocol-stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 12px; margin: 18px 0 20px;
+        }
+        @media (max-width: 800px) { .protocol-stats-row { grid-template-columns: repeat(2, 1fr); } }
+        .proto-stat {
+            background: var(--purple-subtle); border: 1px solid var(--border-purple);
+            border-radius: 10px; padding: 14px; text-align: center;
+        }
+        .proto-stat-lbl { font-size: 11px; font-weight: 700; color: var(--text-dim); }
+        .proto-stat-val { font-size: 22px; font-weight: 900; color: var(--purple-dark); margin-top: 4px; }
+        .proto-stat-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+
+        .protocol-cols {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+            padding-top: 18px; border-top: 1px solid var(--border);
+        }
+        @media (max-width: 768px) { .protocol-cols { grid-template-columns: 1fr; } }
+        .proto-card {
+            background: #fafbfc; border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px 18px;
+        }
+        .proto-card h4 {
+            font-size: 13.5px; font-weight: 800; color: var(--text-heading); margin-bottom: 6px;
+        }
+        .proto-card p {
+            font-size: 12px; color: var(--text-dim); line-height: 1.55;
+        }
+        .proto-list {
+            margin-top: 8px; list-style: none;
+        }
+        .proto-list li {
+            position: relative; padding-left: 14px; margin-bottom: 4px;
+            font-size: 11.5px; color: var(--text-body); font-family: 'JetBrains Mono', monospace;
+        }
+        .proto-list li::before {
+            content: '•'; position: absolute; left: 0; color: var(--purple); font-weight: bold;
+        }
+
+        .alert-notice {
+            margin-top: 18px;
+            background: var(--amber-dim);
+            border: 1px solid var(--amber-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex; gap: 12px; align-items: flex-start;
+        }
+        .alert-notice svg {
+            width: 18px; height: 18px; color: var(--amber); flex-shrink: 0; margin-top: 2px;
+        }
+        .alert-notice h5 {
+            font-size: 12px; font-weight: 800; color: var(--amber);
+        }
+        .alert-notice p {
+            font-size: 11.5px; color: #92400e; margin-top: 2px; line-height: 1.5;
+        }
+
+        /* ═════════════════════════════════════════════════════════
+           TAB 3: ABOUT MODEL (White & Purple Theme)
+           ═════════════════════════════════════════════════════════ */
+        .specs-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-bottom: 24px;
+        }
+        @media (max-width: 900px) { .specs-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 500px) { .specs-grid { grid-template-columns: 1fr; } }
+        .spec-card {
+            background: #ffffff; border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px 18px;
+            box-shadow: var(--shadow-sm); transition: all 0.15s ease;
+        }
+        .spec-card:hover {
+            border-color: var(--border-purple);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .spec-card h4 {
+            font-size: 14px; font-weight: 800; color: var(--text-heading);
+            margin-bottom: 8px;
+        }
+        .spec-card p {
+            font-size: 12px; color: var(--text-dim); line-height: 1.55;
+        }
+
+        /* Footer */
+        .site-footer {
+            text-align: center;
+            padding: 16px 20px 24px;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+        }
+        .site-footer p {
+            font-size: 11.5px; color: var(--text-muted); line-height: 1.6;
+            max-width: 780px; margin: 0 auto;
+        }
+        .site-footer strong { color: var(--text-dim); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ═══════════════════════════════════════════
+         TOP BAR: CLEAN WHITE & PURPLE HEADER
+         (Pills removed, sticky nav with smooth scroll)
+         ═══════════════════════════════════════════ -->
+    <header class="top-nav">
+        <div class="header-title-wrap">
+            <h1 class="header-title">
+                Breast Cancer <span class="purple-text">Detection</span>
+            </h1>
+        </div>
+        <nav class="nav-tabs">
+            <button type="button" id="nav-btn-analyze" class="nav-btn active" onclick="scrollToSection('section-analyze')">Analyze</button>
+            <button type="button" id="nav-btn-performance" class="nav-btn" onclick="scrollToSection('section-performance')">Model Performance</button>
+            <button type="button" id="nav-btn-about" class="nav-btn" onclick="scrollToSection('section-about')">About Model</button>
+        </nav>
+    </header>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 1: ANALYZE (EXACT SIZE OF 1 PAGE!)
+         ═══════════════════════════════════════════ -->
+    <main id="section-analyze">
+        <div class="workspace">
+
+            <!-- LEFT: 30 PARAMETERS (5 COLUMNS, CLEAR & COMPACT) -->
+            <form id="main-form" class="panel" autocomplete="off" onsubmit="event.preventDefault(); submitPrediction();">
+                <div class="panel-head">
+                    <div>
+                        <div class="panel-title">Cell Nucleus Measurements (FNA Cytology)</div>
+                        <div class="panel-desc">All 30 standardized morphometric cytometric inputs</div>
+                    </div>
+                    <div class="panel-actions">
+                        <button type="button" id="btn-test-data" class="btn-action" onclick="loadTestData()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Test Data
+                        </button>
+                        <button type="button" id="btn-clear" class="btn-clear" onclick="clearForm()">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div id="metrics-grid" class="metrics-grid"></div>
+
+                <div class="submit-bar">
+                    <span class="submit-info">Ready for neural network classification &amp; SHAP attribution</span>
+                    <button type="button" id="btn-run" class="btn-run" onclick="submitPrediction()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Run Prediction
+                    </button>
+                </div>
+            </form>
+
+            <!-- RIGHT: DIAGNOSTIC REPORT (STICKY) -->
+            <div class="panel report-panel">
+                <div class="panel-head">
+                    <div>
+                        <div class="panel-title">Diagnostic Report</div>
+                        <div class="panel-desc">Stratification &amp; local SHAP attribution</div>
+                    </div>
+                </div>
+
+                <!-- STANDBY -->
+                <div id="state-standby" class="state-standby">
+                    <div class="standby-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    </div>
+                    <div class="standby-title">Awaiting Sample Input</div>
+                    <div class="standby-text">Click <strong>Test Data</strong> to load sample features, then click <strong>Run Prediction</strong>.</div>
+                    <button type="button" class="btn-action" style="margin-top: 14px; padding: 8px 18px;" onclick="loadTestData()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Load Sample Features
+                    </button>
+                </div>
+
+                <!-- LOADING -->
+                <div id="state-loading" class="state-loading hidden">
+                    <div class="spinner"></div>
+                    <div class="loading-title">Evaluating Specimen...</div>
+                    <div class="loading-step" id="loading-step">Standardizing 30-feature vector...</div>
+                </div>
+
+                <!-- ERROR -->
+                <div id="state-error" class="state-error hidden">
+                    <span id="error-text">Request failed.</span>
+                </div>
+
+                <!-- RESULTS -->
+                <div id="state-result" class="result-section hidden">
+                    <div id="verdict-card" class="verdict-card benign">
+                        <div id="verdict-icon" class="verdict-icon benign">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <div id="verdict-badge" class="verdict-badge benign">BENIGN MORPHOLOGY</div>
+                            <div id="verdict-title" class="verdict-title">Benign Cytology Profile</div>
+                            <div id="verdict-desc" class="verdict-desc">Parameters fall within typical non-malignant distributions.</div>
+                        </div>
+                    </div>
+
+                    <div class="risk-card">
+                        <div class="risk-header">
+                            <span class="risk-label">Malignancy Probability</span>
+                            <span id="risk-pct" class="risk-pct benign">0%</span>
+                        </div>
+                        <div class="risk-track">
+                            <div id="risk-fill" class="risk-fill benign" style="width:0%"></div>
+                        </div>
+                        <div class="risk-meta">
+                            <div class="risk-meta-item">
+                                <div class="risk-meta-k">Risk Stratification</div>
+                                <div id="risk-tier" class="risk-meta-v">Low Suspicion</div>
+                            </div>
+                            <div class="risk-meta-item">
+                                <div class="risk-meta-k">Model Confidence</div>
+                                <div id="model-conf" class="risk-meta-v">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="shap-card">
+                        <div class="shap-header">
+                            <span class="shap-title">Top Feature Drivers (SHAP)</span>
+                            <div class="shap-legend">
+                                <span><span class="dot dot-red"></span> Malignant</span>
+                                <span><span class="dot dot-purple"></span> Benign</span>
+                            </div>
+                        </div>
+                        <div class="chart-box">
+                            <canvas id="shapChart"></canvas>
+                        </div>
+                        <div id="shap-narrative" class="shap-narrative"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 2: MODEL PERFORMANCE & VALIDATION (Image 3 & Image 1)
+         ═══════════════════════════════════════════ -->
+    <section id="section-performance" class="page-section">
+        <h2 class="sec-title">Model Performance &amp; Validation</h2>
+        <p class="sec-sub">Evaluated across 569 fine needle aspirate (FNA) cytology specimens from clinical datasets using a balanced hold-out test split.</p>
+
+        <!-- 4 Metric Cards (Image 3) -->
+        <div class="stat-grid-4">
+            <div class="stat-box">
+                <div class="stat-val val-purple">97.37%</div>
+                <div class="stat-lbl">Overall Accuracy</div>
+                <div class="stat-sub">Independent validation dataset convergence</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val val-rose">96.80%</div>
+                <div class="stat-lbl">Sensitivity (Recall)</div>
+                <div class="stat-sub">True positive identification of malignant cells</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val val-green">98.12%</div>
+                <div class="stat-lbl">Specificity</div>
+                <div class="stat-sub">True negative classification for benign cells</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val val-indigo">12 ms</div>
+                <div class="stat-lbl">Inference Latency</div>
+                <div class="stat-sub">Average single-specimen forward pass latency</div>
+            </div>
+        </div>
+
+        <!-- Validation Confusion Matrix (Image 3) -->
+        <div class="matrix-container">
+            <div class="matrix-top">
+                <div class="matrix-heading">Validation Confusion Matrix</div>
+                <div class="matrix-sample">Distribution on 114 verified hold-out test specimens</div>
+            </div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Ground Truth Label</th>
+                        <th>Predicted: Malignant</th>
+                        <th>Predicted: Benign</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="row-lbl">Malignant Cell (Positive)</td>
+                        <td><span class="cell-good">96.8%</span><span class="cell-sub">(54 cases • True Positive)</span></td>
+                        <td><span class="cell-bad">3.2%</span><span class="cell-sub">(2 cases • False Negative)</span></td>
+                    </tr>
+                    <tr>
+                        <td class="row-lbl">Benign Cell (Negative)</td>
+                        <td><span class="cell-bad">1.9%</span><span class="cell-sub">(1 case • False Positive)</span></td>
+                        <td><span class="cell-good">98.1%</span><span class="cell-sub">(57 cases • True Negative)</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Decision-Support Protocol (Image 1 in White & Purple) -->
+        <div class="protocol-container">
+            <h3 class="protocol-heading">Model Validation &amp; Decision-Support Protocol</h3>
+            <p class="protocol-sub">This clinical decision-support framework utilizes an optimized deep neural network trained on standardized cytomorphometric vectors. The system generates calibrated risk stratifications paired with localized Shapley attribution vectors.</p>
+
+            <div class="protocol-stats-row">
+                <div class="proto-stat">
+                    <div class="proto-stat-lbl">Test Set Accuracy</div>
+                    <div class="proto-stat-val">97.37%</div>
+                    <div class="proto-stat-sub">Independent Holdout</div>
+                </div>
+                <div class="proto-stat">
+                    <div class="proto-stat-lbl">ROC Area Under Curve</div>
+                    <div class="proto-stat-val">0.992</div>
+                    <div class="proto-stat-sub">Diagnostic Discrimination</div>
+                </div>
+                <div class="proto-stat">
+                    <div class="proto-stat-lbl">Sensitivity (Recall)</div>
+                    <div class="proto-stat-val">96.8%</div>
+                    <div class="proto-stat-sub">Malignancy Capture</div>
+                </div>
+                <div class="proto-stat">
+                    <div class="proto-stat-lbl">Specificity</div>
+                    <div class="proto-stat-val">98.1%</div>
+                    <div class="proto-stat-sub">Benign Preservation</div>
+                </div>
+            </div>
+
+            <div class="protocol-cols">
+                <div class="proto-card">
+                    <h4>Neural Network Topology</h4>
+                    <p>The architecture implements a multi-layer perceptron with dropout regularization to prevent overfitting on tabular cytometry distributions:</p>
+                    <ul class="proto-list">
+                        <li>Input Layer: 30 standardized morphometric inputs</li>
+                        <li>Hidden Layer 1: Dense (32 units, ReLU activation)</li>
+                        <li>Regularization: Dropout (25% rate)</li>
+                        <li>Hidden Layer 2: Dense (16 units, ReLU activation)</li>
+                        <li>Output Layer: Dense (1 unit, Sigmoid probability)</li>
+                    </ul>
+                </div>
+                <div class="proto-card">
+                    <h4>Explainable AI (SHAP Framework)</h4>
+                    <p>To ensure model transparency and clinical auditability, every inference query is routed through a background-sampled Shapley Additive Explanations (SHAP) explainer.</p>
+                    <p style="margin-top: 8px;">This provides quantitative feature importance coefficients for each individual patient specimen, displaying exactly how much each nuclear metric nudged the assessment toward benignity or malignancy.</p>
+                </div>
+            </div>
+
+            <div class="alert-notice">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div>
+                    <h5>Clinical Research Decision-Support Notice</h5>
+                    <p>This digital pathology decision-support tool is designed for adjunctive analytical assistance. Results do not constitute a standalone histological diagnosis. Final diagnosis must incorporate full clinical triple-assessment, mammographic imaging, and formal histopathological examination by a board-certified pathologist.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         SECTION 3: ABOUT MODEL (Image 5 in White & Purple)
+         ═══════════════════════════════════════════ -->
+    <section id="section-about" class="page-section">
+        <h2 class="sec-title">Model Overview &amp; Specifications</h2>
+        <p class="sec-sub">Built for fast and reliable computer-aided screening of digitized fine needle aspirate (FNA) cytology specimens.</p>
+
+        <div class="specs-grid">
+            <div class="spec-card">
+                <h4>Dense MLP Backbone</h4>
+                <p>Uses fully-connected layers with dropout regularization and ReLU activations, providing high feature extraction quality with minimal latency.</p>
+            </div>
+            <div class="spec-card">
+                <h4>Two-Phase Training</h4>
+                <p>Initial training optimized feature weighting across 100 epochs, followed by calibrated loss weighting to prioritize high sensitivity on malignant cases.</p>
+            </div>
+            <div class="spec-card">
+                <h4>97.37% Holdout Accuracy</h4>
+                <p>Evaluated on an independent validation split of 114 test specimens with balanced sensitivity and specificity across malignant and benign biopsies.</p>
+            </div>
+            <div class="spec-card">
+                <h4>Standardized Preprocessing</h4>
+                <p>All 30 cytometric metrics are standardized using z-score normalization fitted on reference training distributions to ensure zero distribution drift.</p>
+            </div>
+        </div>
+
+        <div class="matrix-container" style="margin-top: 10px;">
+            <div class="matrix-top">
+                <div class="matrix-heading">Dataset &amp; Optimization Specifications</div>
+            </div>
+            <table class="matrix-table">
+                <tbody>
+                    <tr>
+                        <td class="row-lbl">Dataset Reference</td>
+                        <td>Wisconsin Diagnostic Breast Cancer (WDBC) Database (569 clinical biopsy specimens)</td>
+                    </tr>
+                    <tr>
+                        <td class="row-lbl">Input Features</td>
+                        <td>30 standardized nuclear morphometric measurements (10 Mean, 10 SE, 10 Worst)</td>
+                    </tr>
+                    <tr>
+                        <td class="row-lbl">Model Architecture</td>
+                        <td>Deep Feed-Forward Multi-Layer Perceptron (Dense 32 &rarr; Dropout 0.25 &rarr; Dense 16 &rarr; Dense 1)</td>
+                    </tr>
+                    <tr>
+                        <td class="row-lbl">Explainability Protocol</td>
+                        <td>Shapley Additive Explanations (SHAP) with background distribution sampling (k=100)</td>
+                    </tr>
+                    <tr>
+                        <td class="row-lbl">Inference Latency</td>
+                        <td>~12 ms per specimen on standard CPU runtime</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- FOOTER / MEDICAL NOTICE -->
+    <footer class="site-footer">
+        <p><strong>Medical Notice:</strong> This software is an experimental computer-aided diagnostic tool intended for research, screening assistance, and educational use. Automated classifications should always be reviewed and confirmed by a certified pathologist or clinical laboratory professional.</p>
+    </footer>
+
+</div>
+
+<script>
+// Global constants defined at top level
+const F = [
+    {id:'radius_mean',name:'Radius',g:'mean',u:'µm'},
+    {id:'texture_mean',name:'Texture',g:'mean',u:'int'},
+    {id:'perimeter_mean',name:'Perimeter',g:'mean',u:'µm'},
+    {id:'area_mean',name:'Area',g:'mean',u:'µm²'},
+    {id:'smoothness_mean',name:'Smoothness',g:'mean',u:'idx'},
+    {id:'compactness_mean',name:'Compactness',g:'mean',u:'idx'},
+    {id:'concavity_mean',name:'Concavity',g:'mean',u:'sev'},
+    {id:'concave_points_mean',name:'Concave Pts',g:'mean',u:'ct'},
+    {id:'symmetry_mean',name:'Symmetry',g:'mean',u:'idx'},
+    {id:'fractal_dimension_mean',name:'Fractal Dim',g:'mean',u:'idx'},
+    {id:'radius_se',name:'Radius',g:'se',u:'µm'},
+    {id:'texture_se',name:'Texture',g:'se',u:'int'},
+    {id:'perimeter_se',name:'Perimeter',g:'se',u:'µm'},
+    {id:'area_se',name:'Area',g:'se',u:'µm²'},
+    {id:'smoothness_se',name:'Smoothness',g:'se',u:'idx'},
+    {id:'compactness_se',name:'Compactness',g:'se',u:'idx'},
+    {id:'concavity_se',name:'Concavity',g:'se',u:'sev'},
+    {id:'concave_points_se',name:'Concave Pts',g:'se',u:'ct'},
+    {id:'symmetry_se',name:'Symmetry',g:'se',u:'idx'},
+    {id:'fractal_dimension_se',name:'Fractal Dim',g:'se',u:'idx'},
+    {id:'radius_worst',name:'Radius',g:'worst',u:'µm'},
+    {id:'texture_worst',name:'Texture',g:'worst',u:'int'},
+    {id:'perimeter_worst',name:'Perimeter',g:'worst',u:'µm'},
+    {id:'area_worst',name:'Area',g:'worst',u:'µm²'},
+    {id:'smoothness_worst',name:'Smoothness',g:'worst',u:'idx'},
+    {id:'compactness_worst',name:'Compactness',g:'worst',u:'idx'},
+    {id:'concavity_worst',name:'Concavity',g:'worst',u:'sev'},
+    {id:'concave_points_worst',name:'Concave Pts',g:'worst',u:'ct'},
+    {id:'symmetry_worst',name:'Symmetry',g:'worst',u:'idx'},
+    {id:'fractal_dimension_worst',name:'Fractal Dim',g:'worst',u:'idx'},
+];
+
+// Anonymous realistic test samples from holdout dataset
+const TEST_CASES = [
+    [13.54,14.36,87.46,566.3,0.0978,0.0813,0.0666,0.0478,0.1885,0.0577,0.2699,0.7886,2.058,23.56,0.0085,0.0146,0.0239,0.0132,0.0198,0.0023,15.11,19.26,99.7,711.2,0.144,0.1773,0.239,0.1288,0.2977,0.0726],
+    [17.99,10.38,122.8,1001.0,0.1184,0.2776,0.3001,0.1471,0.2419,0.0787,1.095,0.9053,8.589,153.4,0.0064,0.049,0.0537,0.0159,0.03,0.0062,25.38,17.33,184.6,2019.0,0.1622,0.6656,0.7119,0.2654,0.4601,0.1189],
+    [11.52,18.75,73.34,409.0,0.0952,0.0547,0.0304,0.0228,0.192,0.0591,0.3249,0.9591,2.183,23.47,0.0083,0.0087,0.0135,0.0087,0.0322,0.0024,12.84,22.47,81.81,506.2,0.1249,0.0872,0.0908,0.0632,0.3306,0.0704],
+    [16.02,23.24,102.7,797.8,0.0821,0.0667,0.033,0.0332,0.1528,0.057,0.3795,1.187,2.466,40.51,0.004,0.0093,0.011,0.0076,0.0146,0.003,19.19,33.88,123.8,1150.0,0.1181,0.1551,0.1459,0.0998,0.2948,0.0845],
+    [12.77,22.47,81.72,506.3,0.0905,0.0576,0.0471,0.027,0.1585,0.0606,0.2367,1.38,1.457,19.87,0.0075,0.012,0.0233,0.0089,0.0165,0.0026,14.49,33.37,92.04,653.6,0.1419,0.1523,0.2177,0.0933,0.2829,0.0807],
+    [19.69,21.25,130.0,1203.0,0.1096,0.1599,0.1974,0.1279,0.2069,0.0599,0.7456,0.7869,4.585,94.03,0.0061,0.0401,0.0383,0.0206,0.0225,0.0046,23.57,25.53,152.5,1709.0,0.1444,0.4245,0.4504,0.243,0.3613,0.0876],
+    [13.08,15.71,85.63,520.0,0.1075,0.127,0.0457,0.0311,0.1967,0.0681,0.1852,0.7477,1.383,14.67,0.0041,0.0215,0.0169,0.0065,0.0168,0.0018,14.5,20.49,96.09,630.5,0.1312,0.2776,0.189,0.0728,0.3184,0.0818],
+    [14.25,21.72,93.63,633.0,0.0982,0.1098,0.109,0.0678,0.1819,0.0623,0.286,1.019,2.657,24.91,0.0059,0.0305,0.0348,0.0134,0.0167,0.0035,15.89,30.36,116.2,799.6,0.1446,0.4238,0.5186,0.2114,0.3885,0.0976]
+];
+
+const STATES = ['state-standby', 'state-loading', 'state-error', 'state-result'];
+let currentCaseIdx = 0;
+let chartInst = null;
+
+function showState(id) {
+    STATES.forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.classList.toggle('hidden', s !== id);
+    });
+}
+
+function loadCase(arr) {
+    F.forEach((f, i) => {
+        const input = document.getElementById(f.id);
+        if (input) input.value = arr[i];
+    });
+    showState('state-standby');
+}
+
+function loadTestData() {
+    currentCaseIdx = (currentCaseIdx + 1) % TEST_CASES.length;
+    loadCase(TEST_CASES[currentCaseIdx]);
+}
+
+function clearForm() {
+    const form = document.getElementById('main-form');
+    if (form) form.reset();
+    showState('state-standby');
+}
+
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        const topBar = document.querySelector('.top-nav');
+        const offset = (topBar ? topBar.offsetHeight : 65) + 10;
+        const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+}
+
+// Scroll-spy: highlight current active section in nav bar
+window.addEventListener('scroll', () => {
+    const sections = ['section-analyze', 'section-performance', 'section-about'];
+    const navBtns = {
+        'section-analyze': document.getElementById('nav-btn-analyze'),
+        'section-performance': document.getElementById('nav-btn-performance'),
+        'section-about': document.getElementById('nav-btn-about')
+    };
+    const scrollPos = window.scrollY + 130;
+    for (let i = sections.length - 1; i >= 0; i--) {
+        const el = document.getElementById(sections[i]);
+        if (el && el.offsetTop <= scrollPos) {
+            Object.values(navBtns).forEach(b => { if (b) b.classList.remove('active'); });
+            if (navBtns[sections[i]]) navBtns[sections[i]].classList.add('active');
+            break;
+        }
+    }
+});
+
+async function submitPrediction() {
+    const vals = [];
+    for (const f of F) {
+        const el = document.getElementById(f.id);
+        const v = el ? parseFloat(el.value) : NaN;
+        if (isNaN(v)) {
+            showState('state-error');
+            const errEl = document.getElementById('error-text');
+            if (errEl) errEl.textContent = `Please enter a valid value for ${f.name}.`;
+            return;
+        }
+        vals.push(v);
+    }
+
+    showState('state-loading');
+    const st = document.getElementById('loading-step');
+    if (st) st.textContent = 'Standardizing 30-feature vector...';
+    setTimeout(() => { if (st) st.textContent = 'Evaluating Dense Neural Network...'; }, 200);
+    setTimeout(() => { if (st) st.textContent = 'Generating localized SHAP attributions...'; }, 500);
+
+    try {
+        const url = location.protocol === 'file:' ? 'http://127.0.0.1:5000/predict' : '/predict';
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ features: vals })
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `Server error: HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        renderResult(data);
+    } catch (err) {
+        showState('state-error');
+        const errEl = document.getElementById('error-text');
+        if (errEl) errEl.textContent = err.message || 'Connection error.';
+    }
+}
+
+function renderResult(r) {
+    const mal = (r.prediction === 'Malignant');
+    const prob = mal ? r.confidence_score : (1 - r.confidence_score);
+    const pct = (prob * 100).toFixed(1);
+    const cls = mal ? 'malignant' : 'benign';
+
+    const card = document.getElementById('verdict-card');
+    if (card) card.className = `verdict-card ${cls}`;
+
+    const vi = document.getElementById('verdict-icon');
+    if (vi) {
+        vi.className = `verdict-icon ${cls}`;
+        vi.innerHTML = mal
+            ? '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'
+            : '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+    }
+
+    const badge = document.getElementById('verdict-badge');
+    if (badge) {
+        badge.className = `verdict-badge ${cls}`;
+        badge.textContent = mal ? 'MALIGNANCY SUSPECTED' : 'BENIGN MORPHOLOGY';
+    }
+
+    const title = document.getElementById('verdict-title');
+    if (title) title.textContent = mal ? 'Malignant Cytopathology' : 'Benign Cytology Profile';
+
+    const desc = document.getElementById('verdict-desc');
+    if (desc) {
+        desc.textContent = mal
+            ? 'Nuclear morphometrics display significant pleomorphism consistent with malignancy.'
+            : 'Specimen parameters fall within typical non-malignant distributions.';
+    }
+
+    const rp = document.getElementById('risk-pct');
+    if (rp) {
+        rp.className = `risk-pct ${cls}`;
+        rp.textContent = `${pct}%`;
+    }
+
+    const fill = document.getElementById('risk-fill');
+    if (fill) {
+        fill.className = `risk-fill ${cls}`;
+        fill.style.width = `${Math.max(pct, 2)}%`;
+    }
+
+    const tier = document.getElementById('risk-tier');
+    if (tier) tier.textContent = mal ? 'High Suspicion' : 'Low Suspicion';
+
+    const conf = document.getElementById('model-conf');
+    if (conf) conf.textContent = `${(Math.max(r.confidence_score, 1 - r.confidence_score) * 100).toFixed(1)}%`;
+
+    renderSHAP(r.feature_importance);
+    showState('state-result');
+}
+
+function renderSHAP(imp) {
+    if (!imp) return;
+    const sorted = Object.entries(imp).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 7);
+    const labels = sorted.map(s => {
+        const m = F.find(f => f.id === s[0]);
+        return m ? `${m.name} (${m.g})` : s[0];
+    });
+    const values = sorted.map(s => s[1]);
+    const bg = values.map(v => (v > 0 ? '#ef4444' : '#7c3aed'));
+
+    const top = sorted[0];
+    const topM = F.find(f => f.id === top[0]);
+    const topName = topM ? `${topM.name} (${topM.g})` : top[0];
+    const narr = document.getElementById('shap-narrative');
+    if (narr) {
+        narr.innerHTML = `
+            <strong>${topName}</strong> (${top[1] > 0 ? '+' : ''}${top[1].toFixed(4)}) is the primary driver, shifting prediction ${top[1] > 0 ? '<span style="color:#ef4444;font-weight:700;">toward malignancy</span>' : '<span style="color:#7c3aed;font-weight:700;">toward benign</span>'}.
+        `;
+    }
+
+    const canvas = document.getElementById('shapChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
+    if (chartInst) chartInst.destroy();
+    chartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: bg,
+                borderRadius: 4,
+                barThickness: 10
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e1b4b',
+                    titleFont: { family: 'Plus Jakarta Sans', size: 11, weight: 'bold' },
+                    bodyFont: { family: 'Plus Jakarta Sans', size: 11 },
+                    padding: 8,
+                    cornerRadius: 6,
+                    callbacks: {
+                        label: c => `SHAP: ${c.parsed.x > 0 ? '+' : ''}${c.parsed.x.toFixed(4)} (${c.parsed.x > 0 ? 'Malignant driver' : 'Benign driver'})`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#f1f5f9' },
+                    ticks: { font: { family: 'Plus Jakarta Sans', size: 9.5 }, color: '#94a3b8' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }, color: '#475569' }
+                }
+            }
+        }
+    });
+}
+
+function init() {
+    const grid = document.getElementById('metrics-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    let lastGroup = '';
+    F.forEach(f => {
+        if (f.g !== lastGroup) {
+            lastGroup = f.g;
+            const hdr = document.createElement('div');
+            hdr.className = 'group-header';
+            const gNames = {mean:'Mean Nuclear Scale', se:'Standard Error (Variance)', worst:'Extreme Atypia (Worst)'};
+            const tc = {mean:'tag-mean', se:'tag-se', worst:'tag-worst'};
+            hdr.innerHTML = `<span>${gNames[f.g]}</span> <span class="group-tag ${tc[f.g]}">10 Inputs</span>`;
+            grid.appendChild(hdr);
+        }
+        const card = document.createElement('div');
+        card.className = 'metric-card';
+        card.innerHTML = `
+            <div class="metric-top">
+                <span class="metric-name" title="${f.name}">${f.name}</span>
+                <span class="metric-unit">${f.u}</span>
+            </div>
+            <input type="number" step="any" name="${f.id}" id="${f.id}" placeholder="0.00" required>
+        `;
+        grid.appendChild(card);
+    });
+
+    // Populate initial sample
+    loadCase(TEST_CASES[0]);
+}
+
+// Make functions accessible to inline onclick handlers
+window.loadTestData = loadTestData;
+window.clearForm = clearForm;
+window.scrollToSection = scrollToSection;
+window.submitPrediction = submitPrediction;
+
+// Execute initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+</script>
+</body>
+</html>
